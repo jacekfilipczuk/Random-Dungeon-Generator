@@ -1,0 +1,88 @@
+/** This function, given an array of faces, and a percentage, bevels out stalactites and stalagmites  **/
+
+/**
+*	faceArray : array with all the faces where the bevel can be done (floor and ceiling)
+*	percentuale : the percentage of faces that will be beveled out
+*	oggetto : the object to work with
+*	usedFaces : the returned array with all the faces that were beveled out
+**/
+fn stalattiti facceArray percentuale oggetto =
+(
+	numeroFacce =facceArray.count
+	fine = numeroFacce / percentuale
+	usedFaces=#() as array
+	for i=1 to fine do 
+	(
+	
+		modPanel.addModToSelection (Edit_Poly ()) ui:on
+		subobjectLevel = 4
+		index = random 1 facceArray.count  /**choose a random face **/
+		faccia=facceArray[index]
+			
+		$.modifiers[#Edit_poly].SetSelection #Face #{}
+		$.modifiers[#Edit_poly].Select #Face #{faccia}
+		
+			/*****GROW SELECTION*****/
+		macros.run "Ribbon - Modeling" "GrowSelection"  /** select all adiacent faces of the random one **/
+		adiacenti  = $.Edit_Poly.getSelection #Face
+		facceAdiacenti=adiacenti as array
+			
+		vertici=makeSquare oggetto faccia 
+			
+		macros.run "Ribbon - Modeling" "AlignZ"
+		height = random 3 12
+		heightpart=height/3
+		faceArea = polyOp.GetFaceArea $ faccia
+		latoFaccia = sqrt faceArea
+		toOutline = latoFaccia/3
+		
+			/**BEVEL 1 **/
+		$.modifiers[#Edit_poly].SetSelection #Face #{}
+		$.modifiers[#Edit_poly].Select #Face #{faccia}
+		$.modifiers[#Edit_Poly].SetOperation #Bevel
+		$.modifiers[#Edit_Poly].bevelHeight = 1
+		$.modifiers[#Edit_Poly].bevelOutline = -toOutline
+			
+		toOutline = latoFaccia/15
+		modPanel.addModToSelection (Edit_Poly ()) ui:on
+		subobjectLevel = 4
+		$.modifiers[#Edit_poly].SetSelection #Face #{}
+		$.modifiers[#Edit_poly].Select #Face #{faccia}
+			/**BEVEL 2 **/
+		$.modifiers[#Edit_Poly].SetOperation #Bevel
+		$.modifiers[#Edit_Poly].bevelHeight = heightpart
+		$.modifiers[#Edit_Poly].bevelOutline = -toOutline
+			
+		modPanel.addModToSelection (Edit_Poly ()) ui:on
+		subobjectLevel = 4
+		$.modifiers[#Edit_poly].SetSelection #Face #{}
+		$.modifiers[#Edit_poly].Select #Face #{faccia}
+	
+		faceArea = polyOp.GetFaceArea $ faccia
+		latoFaccia = sqrt faceArea
+		toOutline = latoFaccia/5
+			/**BEVEL 3 **/
+		$.modifiers[#Edit_Poly].SetOperation #Bevel
+		$.modifiers[#Edit_Poly].bevelHeight = heightpart
+		$.modifiers[#Edit_Poly].bevelOutline = -toOutline
+		$.modifiers[#Edit_Poly].Commit()
+		
+		usedFaces = append usedFaces faccia	
+		numAdiacenti = facceAdiacenti.count
+ 		for i=1 to numAdiacenti do  /**delete from input array the used faces so they cannot be selected again**/
+ 		(
+ 			
+ 			numeroFacce =facceArray.count
+ 			for j=1 to numeroFacce do
+ 			(
+ 				if facceArray[j]==facceAdiacenti[i]  do
+ 					deleteItem facceArray j
+ 			)
+ 			
+ 		)
+ 
+		
+		
+	)
+	usedFaces
+)
