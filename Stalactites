@@ -6,7 +6,7 @@
 *	oggetto : the object to work with
 *	usedFaces : the returned array with all the faces that were beveled out
 **/
-fn stalattiti facceArray percentuale oggetto =
+fn stalactites facceArray percentuale oggetto =
 (
 	numeroFacce =facceArray.count
 	fine = numeroFacce / percentuale
