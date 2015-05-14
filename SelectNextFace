@@ -1,0 +1,48 @@
+/**
+* This Function Select a random direction if not specified and select a random face that faces the selected direction
+**/
+
+/**
+* dir : the direction on which the face will be selected
+* oggetto : the object to work with
+* toReturn : returns an array with the selected face and direction
+**/
+fn selNextFace dir oggetto =
+(
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	convertto oggetto editable_poly
+	subobjectLevel = 4
+	
+	/*select a random direction*/
+	if(dir<1) then
+		dir = random 1 4;
+	else if(dir>6) do
+		dir = random 1 4;
+	case (dir) of
+	(
+		1: direzione="+x"
+		2: direzione="-x"
+		3: direzione="+y"
+		4: direzione="-y"
+		5: direzione="+z"
+		6: direzione="-z"
+	)
+	
+	/* Select all faces facing a direction*/
+	case (direzione) of
+	(
+	"-x": PolyToolsSelect.Normal 1 179 true;
+	"+x" : PolyToolsSelect.Normal 1 1 false;
+	"-y": PolyToolsSelect.Normal 2 179 true;
+	"+y" : PolyToolsSelect.Normal 2 1 false;
+	"-z":PolyToolsSelect.Normal 3 179 true
+	"+z":PolyToolsSelect.Normal 3 1 false
+	)
+
+	/*select a random face from the set of selected faces*/
+	faces = getFaceSelection oggetto;
+	faces = faces as array
+	index = random 1 faces.count
+	faceToReturn = faces[index]
+	toReturn = #(faceToReturn,direzione);
+)
