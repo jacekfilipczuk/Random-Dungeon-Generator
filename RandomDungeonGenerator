@@ -1,0 +1,377 @@
+/**
+	This script generates randomly a dungeon with tunnels, caves and stalactites on the floor and on the ceiling. 
+	The process uses also noise and turbosmooth to make surfaces more realistic and applies tectures at the end.
+**/
+
+
+resetMaxFile #noprompt
+Box()
+$Box001.length =20
+$Box001.width = 20
+$Box001.height = 20
+$Box001.backfacecull = on
+
+select $Box001
+modPanel.addModToSelection (Edit_Poly ()) ui:on
+subobjectlevel=4
+$Box001.modifiers[#Edit_Poly].ignoreBackfacing = on	
+select $Box001
+convertto $Box001 editable_poly
+list = $Box001.faces
+select $Box001
+oggetto = $Box001
+
+/** For documentation see the function file**/
+fn createTunnel faccia len boxH1 boxH2 boxW = 
+(
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	/**making the start face smaller**/
+	$Box001.modifiers[#Edit_Poly].SetSelection #face #{}
+	$Box001.modifiers[#Edit_Poly].Select #face #{faccia}
+	$Box001.modifiers[#Edit_Poly].SetOperation #Bevel
+	$Box001.modifiers[#Edit_Poly].bevelHeight = 10
+	$Box001.modifiers[#Edit_Poly].bevelOutline = -boxH1
+	/** extruding the tunnel**/
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	$Box001.modifiers[#Edit_Poly].Select #face #{faccia}
+	$Box001.modifiers[#Edit_Poly].SetOperation #Bevel
+	$Box001.modifiers[#Edit_Poly].bevelHeight = len
+	/**making the face bigger again**/
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	$Box001.modifiers[#Edit_Poly].Select #face #{faccia}
+	$Box001.modifiers[#Edit_Poly].SetOperation #Bevel
+	$Box001.modifiers[#Edit_Poly].bevelHeight = 10
+	$Box001.modifiers[#Edit_Poly].bevelOutline = boxH2
+	/**extruding the room at the end**/
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	$Box001.modifiers[#Edit_Poly].Select #face #{faccia}
+	$Box001.modifiers[#Edit_Poly].SetOperation #Bevel
+	$Box001.modifiers[#Edit_Poly].bevelHeight = boxW
+)
+
+/** For documentation see the function file**/
+fn makeSquare oggetto faccia=
+(
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	theCenter=polyOp.getFaceCenter oggetto faccia
+	faceVerts = polyop.getVertsUsingFace oggetto faccia
+	vertPos= for v in faceVerts collect(polyop.getVert oggetto v)
+	vert1=vertPos[1]
+	asse = "z"	
+	lato1=1
+	lato2=1
+	
+	--Here i find out what edge of the face is vertical (y axis) and what edge is horizontal(x axis)
+	for i=2 to 4 do
+	(
+		deltaX= abs vert1[1] - abs vertPos[i][1]
+		deltaY= abs vert1[2] - abs vertPos[i][2]
+		if (deltaX==0) do
+		(
+			asse = "x"
+			lato1 = sqrt (deltaX^2 + deltaY^2)
+		)
+		if (deltaY==0) do
+		(
+			lato2 = sqrt (deltaX^2 + deltaY^2)
+		)
+	)
+	
+	rapportoMin = amin #(lato1,lato2) / amax #(lato1,lato2)
+	rapportoMax = amax #(lato1,lato2) / amin #(lato1,lato2)
+	$.modifiers[#Edit_Poly].SetSelection #Face #{}
+	$.modifiers[#Edit_Poly].Select #Face #{faccia}
+	$.modifiers[#Edit_Poly].SetOperation #Transform
+	if asse=="x" do
+	(
+		if (lato1<lato2) then
+			$.modifiers[#Edit_Poly].ScaleSelection  [rapportoMin,1,1] axis:(transMatrix theCenter) 
+		else
+			$.modifiers[#Edit_Poly].ScaleSelection  [1,rapportoMin,1]    axis:(transMatrix theCenter) 
+	)
+	$.modifiers[#Edit_Poly].Commit ()
+)				
+
+/** For documentation see the function file**/
+fn stalactites facceArray percentuale oggetto =
+(
+	numeroFacce =facceArray.count
+	fine = numeroFacce / percentuale
+	usedFaces=#() as array
+	for i=1 to fine do 
+	(
+	
+		modPanel.addModToSelection (Edit_Poly ()) ui:on
+		subobjectLevel = 4
+		index = random 1 facceArray.count  /**choose a random face **/
+		faccia=facceArray[index]
+			
+		$.modifiers[#Edit_poly].SetSelection #Face #{}
+		$.modifiers[#Edit_poly].Select #Face #{faccia}
+		
+			/*****GROW SELECTION*****/
+		macros.run "Ribbon - Modeling" "GrowSelection"  /** select all adiacent faces of the random one **/
+		adiacenti  = $.Edit_Poly.getSelection #Face
+		facceAdiacenti=adiacenti as array
+			
+		vertici=makeSquare oggetto faccia 
+			
+		macros.run "Ribbon - Modeling" "AlignZ"
+		height = random 3 12
+		heightpart=height/3
+		faceArea = polyOp.GetFaceArea $ faccia
+		latoFaccia = sqrt faceArea
+		toOutline = latoFaccia/3
+		
+			/**BEVEL 1 **/
+		$.modifiers[#Edit_poly].SetSelection #Face #{}
+		$.modifiers[#Edit_poly].Select #Face #{faccia}
+		$.modifiers[#Edit_Poly].SetOperation #Bevel
+		$.modifiers[#Edit_Poly].bevelHeight = 1
+		$.modifiers[#Edit_Poly].bevelOutline = -toOutline
+			
+		toOutline = latoFaccia/15
+		modPanel.addModToSelection (Edit_Poly ()) ui:on
+		subobjectLevel = 4
+		$.modifiers[#Edit_poly].SetSelection #Face #{}
+		$.modifiers[#Edit_poly].Select #Face #{faccia}
+			/**BEVEL 2 **/
+		$.modifiers[#Edit_Poly].SetOperation #Bevel
+		$.modifiers[#Edit_Poly].bevelHeight = heightpart
+		$.modifiers[#Edit_Poly].bevelOutline = -toOutline
+			
+		modPanel.addModToSelection (Edit_Poly ()) ui:on
+		subobjectLevel = 4
+		$.modifiers[#Edit_poly].SetSelection #Face #{}
+		$.modifiers[#Edit_poly].Select #Face #{faccia}
+	
+		faceArea = polyOp.GetFaceArea $ faccia
+		latoFaccia = sqrt faceArea
+		toOutline = latoFaccia/5
+			/**BEVEL 3 **/
+		$.modifiers[#Edit_Poly].SetOperation #Bevel
+		$.modifiers[#Edit_Poly].bevelHeight = heightpart
+		$.modifiers[#Edit_Poly].bevelOutline = -toOutline
+		$.modifiers[#Edit_Poly].Commit()
+		
+		usedFaces = append usedFaces faccia	
+		numAdiacenti = facceAdiacenti.count
+ 		for i=1 to numAdiacenti do  /**delete from input array the used faces so they cannot be selected again**/
+ 		(
+ 			
+ 			numeroFacce =facceArray.count
+ 			for j=1 to numeroFacce do
+ 			(
+ 				if facceArray[j]==facceAdiacenti[i]  do
+ 					deleteItem facceArray j
+ 			)
+ 			
+ 		)
+ 
+		
+		
+	)
+	usedFaces
+)
+
+/** For documentation see the function file**/
+fn collision distanza direzione oggetto faccia =
+(
+	x=0;
+	y=0;
+	z=0;
+	case (direzione) of
+	(
+		"+z" : z=1;
+		"-z" : z=-1;
+		"+y" : y=1;
+		"-y" : y=-1;
+		"+x" : x=1;
+		"-x" : x=-1;
+	)
+	toReturn = True; 	
+	select oggetto
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	convertto oggetto editable_poly /* transform the object to work with in editable_poly */
+	ver=polyOp.getFaceCenter oggetto faccia; /** get the face center position**/
+	theRay = Ray [ver[1]+x,ver[2]+y,ver[3]+z] [x, y, z] /* create a ray that starts from the face center, pos =[x,y,z], */
+
+	/* theRay.position = [x,y+eps,z]  it is necessary to add some eps value to the y variable of the ray position in order to avoid strange return values*/
+	theInt = IntersectRay oggetto TheRay ;/* theInt is the position of the intersection between the ray and the object, it contains also the normal parameters of the intersection point*/
+	if theInt == undefined do
+	(	
+		theInt=TheRay; /* intersectRay return undefined if there is not a collision, here i catch this exception*/
+		toReturn = False;
+	)
+
+	/* here i check if there is a collision within the specified distance */
+	collisionDistance = distance TheRay.position (theInt.position);
+	if collisionDistance > distanza do toReturn =False;
+	
+	toReturn
+)
+
+/** For documentation see the function file**/
+fn selNextFace dir oggetto =
+(
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	convertto oggetto editable_poly
+	subobjectLevel = 4
+	
+	/*select a random direction*/
+	if(dir<1) then
+		dir = random 1 4;
+	else if(dir>6) do
+		dir = random 1 4;
+	case (dir) of
+	(
+		1: direzione="+x"
+		2: direzione="-x"
+		3: direzione="+y"
+		4: direzione="-y"
+		5: direzione="+z"
+		6: direzione="-z"
+	)
+	
+	/* Select all faces facing a direction*/
+	case (direzione) of
+	(
+	"-x": PolyToolsSelect.Normal 1 179 true;
+	"+x" : PolyToolsSelect.Normal 1 1 false;
+	"-y": PolyToolsSelect.Normal 2 179 true;
+	"+y" : PolyToolsSelect.Normal 2 1 false;
+	"-z":PolyToolsSelect.Normal 3 179 true
+	"+z":PolyToolsSelect.Normal 3 1 false
+	)
+
+	/*select a random face from the set of selected faces*/
+	faces = getFaceSelection oggetto;
+	faces = faces as array
+	index = random 1 faces.count
+	faceToReturn = faces[index]
+	toReturn = #(faceToReturn,direzione);
+)
+
+/***************************    CREATION   *******************************/
+distanza= 65; /**the distance**/
+stanze = 3; /** number of rooms**/
+currentStanze=0; /** current number of rooms**/
+while(currentStanze<stanze) do
+(
+	tempArray = selNextFace 0 oggetto;
+	currFaccia = tempArray[1];
+	direzione = tempArray[2];
+	isCollision = collision distanza direzione oggetto currFaccia;
+	if(isCollision!=True) do
+		(
+			createTunnel currFaccia 20 3 3 20;
+			tempArray=#();
+			currentStanze=currentStanze+1;
+		)
+		isCollision=True
+	
+)
+
+flip = normalmodifier()
+flip.flip=true
+addmodifier $Box001 flip
+
+/************** TESSELLATE ************************/
+modPanel.addModToSelection (Edit_Poly ()) ui:on
+subobjectLevel = 4
+select $Box001
+modPanel.addModToSelection (Edit_Poly ()) ui:on
+$.modifiers[#Edit_Poly].ButtonOp #Tessellate
+$.modifiers[#Edit_Poly].ButtonOp #Tessellate
+
+modPanel.addModToSelection (Edit_Poly ()) ui:on
+convertto $Box001 editable_poly
+select $Box001
+	/*Selection of the object's floor  */
+subobjectLevel = 4
+PolyToolsSelect.Normal 3 1 false
+pav  = getFaceSelection $Box001;
+faccePav=pav as array;
+
+	/*Selection of the object's ceiling  */
+modPanel.addModToSelection (Edit_Poly ()) ui:on	
+convertto $Box001 editable_poly
+select $Box001
+subobjectLevel = 4
+PolyToolsSelect.Normal 3 179 true
+sof  = getFaceSelection $Box001	
+facceSof=sof as array
+	/*creating stalactites and stalagmites  */
+pavimento = stalactites faccePav 5 oggetto;
+soffitto = stalactites facceSof 5 oggetto;
+pavimento = pavimento +soffitto
+vertsToEliminate = #()
+for i=1 to pavimento.count do
+ 		(
+ 			vertsToEliminate =vertsToEliminate+ polyop.getVertsUsingFace oggetto pavimento[i]	
+ 		)
+vertsToEliminate = vertsToEliminate as BitArray
+	
+		/***SELECT VERTICIES FOR NOISE***/
+		/**this part is to NOT apply noise to the stalactites and stalagmites**/
+modPanel.addModToSelection (Edit_Poly ()) ui:on
+select $Box001
+subobjectLevel = 1
+boxVert1 = $Box001.numVerts
+$.modifiers[#Edit_Poly].SetSelection #Vertex #{}
+$.modifiers[#Edit_Poly].Select #vertex #{1..boxVert1}
+allVerts = $.Edit_Poly.getSelection #Vertex
+
+$.modifiers[#Edit_Poly].SetSelection #Vertex #{}
+$.modifiers[#Edit_Poly].Select #vertex vertsToEliminate	
+macros.run "Ribbon - Modeling" "GrowSelection"
+macros.run "Ribbon - Modeling" "GrowSelection"
+vertsToEliminate= $.Edit_Poly.getSelection #Vertex
+	
+theDifference=(allVerts as bitarray - vertsToEliminate as bitarray)as BitArray
+	
+$.modifiers[#Edit_Poly].SetSelection #Vertex #{}
+$.modifiers[#Edit_Poly].Select #vertex theDifference
+	
+	/***NOISE***/
+modPanel.addModToSelection (Noisemodifier ()) ui:on
+$Box001.modifiers[#Noise].fractal = on
+$Box001.modifiers[#Noise].iterations = 1
+$Box001.modifiers[#Noise].scale = 2.50
+$Box001.modifiers[#Noise].strength = [2.0,2.0,-2.0]
+
+
+/***TURBOSMOOTH***/
+modPanel.addModToSelection (TurboSmooth ()) ui:on
+$.modifiers[#TurboSmooth].iterations = 2
+	
+	/***NOISE***/
+modPanel.addModToSelection (Noisemodifier ()) ui:on
+$Box001.modifiers[#Noise].fractal = on
+$Box001.modifiers[#Noise].iterations = 3
+$Box001.modifiers[#Noise].scale = 2.00
+$Box001.modifiers[#Noise].strength = [0.50,0.50,0.50]
+	
+
+/**    MATERIAL       **/
+macros.run "Medit Tools" "basic_material_editor"
+meditMaterials[1].DirectX_Manager.enabled = off
+meditMaterials[1].diffuseMap = Noise ()
+meditMaterials[1][#Maps][#Diffuse_Color__Map__1____Noise].map1Enabled = on
+meditMaterials[1][#Maps][#Diffuse_Color__Map__1____Noise].map1 = Bitmaptexture fileName:/***TEXTURE PATH HERE****/
+meditMaterials[1][#Maps][#Diffuse_Color__Map__1____Noise].map1.alphaSource = 2
+meditMaterials[1][#Maps][#Diffuse_Color__Map__1____Noise].map2 = Noise ()
+meditMaterials[1][#Maps][#Diffuse_Color__Map__1____Noise].map2.map1 = Bitmaptexture fileName:/***TEXTURE PATH HERE****/
+meditMaterials[1][#Maps][#Diffuse_Color__Map__1____Noise].map2.map1.alphaSource = 2
+meditMaterials[1][#Maps][#Diffuse_Color__Map__1____Noise].map2.map2 = Bitmaptexture fileName:/***TEXTURE PATH HERE****/
+meditMaterials[1][#Maps][#Diffuse_Color__Map__1____Noise].map2.map2.alphaSource = 2
+modPanel.addModToSelection (Edit_Mesh ()) ui:on
+subobjectLevel = 5
+select $Box001
+$.material = meditMaterials[1]
