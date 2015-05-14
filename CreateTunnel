@@ -1,0 +1,40 @@
+/** This function take in input four parameters and, using bevel, generates a tunnel with a square room at the end.**/
+
+/**
+*	faccia = the face from what the tunnel starts
+*	boxH1 = indicates how much the tunnel has to be smaller that the initial face(default 3)
+*	boxH2 = indicates how much the room at the end has to be bigger than the tunnel (default 3)
+*	boxW = the lenght of the room at the end
+*	len = the lenght of the tunnel (default 30)
+**/
+
+fn createTunnel faccia len boxH1 boxH2 boxW = 
+(
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	/**making the start face smaller**/
+	$Box001.modifiers[#Edit_Poly].SetSelection #face #{}
+	$Box001.modifiers[#Edit_Poly].Select #face #{faccia}
+	$Box001.modifiers[#Edit_Poly].SetOperation #Bevel
+	$Box001.modifiers[#Edit_Poly].bevelHeight = 10
+	$Box001.modifiers[#Edit_Poly].bevelOutline = -boxH1
+	/** extruding the tunnel**/
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	$Box001.modifiers[#Edit_Poly].Select #face #{faccia}
+	$Box001.modifiers[#Edit_Poly].SetOperation #Bevel
+	$Box001.modifiers[#Edit_Poly].bevelHeight = len
+	/**making the face bigger again**/
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	$Box001.modifiers[#Edit_Poly].Select #face #{faccia}
+	$Box001.modifiers[#Edit_Poly].SetOperation #Bevel
+	$Box001.modifiers[#Edit_Poly].bevelHeight = 10
+	$Box001.modifiers[#Edit_Poly].bevelOutline = boxH2
+	/**extruding the room at the end**/
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	$Box001.modifiers[#Edit_Poly].Select #face #{faccia}
+	$Box001.modifiers[#Edit_Poly].SetOperation #Bevel
+	$Box001.modifiers[#Edit_Poly].bevelHeight = boxW
+)
