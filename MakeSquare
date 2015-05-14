@@ -1,0 +1,50 @@
+/** This function get in input a face and make that face a perfect square**/
+
+/**
+* oggetto : the object to work with
+* faccia : the face to make square
+**/
+
+fn makeSquare oggetto faccia=
+(
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	theCenter=polyOp.getFaceCenter oggetto faccia
+	faceVerts = polyop.getVertsUsingFace oggetto faccia
+	vertPos= for v in faceVerts collect(polyop.getVert oggetto v)
+	vert1=vertPos[1]
+	asse = "z"	
+	lato1=1
+	lato2=1
+	
+	--Here i find out what edge of the face is vertical (y axis) and what edge is horizontal(x axis)
+	for i=2 to 4 do
+	(
+		deltaX= abs vert1[1] - abs vertPos[i][1]
+		deltaY= abs vert1[2] - abs vertPos[i][2]
+		if (deltaX==0) do
+		(
+			asse = "x"
+			lato1 = sqrt (deltaX^2 + deltaY^2)
+		)
+		if (deltaY==0) do
+		(
+			lato2 = sqrt (deltaX^2 + deltaY^2)
+		)
+	)
+	
+	rapportoMin = amin #(lato1,lato2) / amax #(lato1,lato2)
+	rapportoMax = amax #(lato1,lato2) / amin #(lato1,lato2)
+	$.modifiers[#Edit_Poly].SetSelection #Face #{}
+	$.modifiers[#Edit_Poly].Select #Face #{faccia}
+	$.modifiers[#Edit_Poly].SetOperation #Transform
+	if asse=="x" do
+	(
+		if (lato1<lato2) then
+			$.modifiers[#Edit_Poly].ScaleSelection  [rapportoMin,1,1] axis:(transMatrix theCenter) 
+		else
+			$.modifiers[#Edit_Poly].ScaleSelection  [1,rapportoMin,1]    axis:(transMatrix theCenter) 
+	)
+	$.modifiers[#Edit_Poly].Commit ()
+
+)	
