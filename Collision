@@ -1,0 +1,47 @@
+/** The function, given the inputs, checks if there is a collision.
+From the given face, this function starts a ray and then checks if there is a collision within a specified distance. If there is collision it return True,
+otherwise it returns False.
+**/
+
+/**
+*	distanza = the distance within the function checks if there is a collision
+*	direzione = the direction on what the collision is checked, it can be one of these values "+x,-x,+y,-y,+z,-z"
+*	oggetto = the object to work with
+*	toReturn = True if there is a collision, False otherwise
+**/
+fn collision distanza direzione oggetto faccia =
+(
+	x=0;
+	y=0;
+	z=0;
+	case (direzione) of
+	(
+		"+z" : z=1;
+		"-z" : z=-1;
+		"+y" : y=1;
+		"-y" : y=-1;
+		"+x" : x=1;
+		"-x" : x=-1;
+	)
+	toReturn = True; 	
+	select oggetto
+	modPanel.addModToSelection (Edit_Poly ()) ui:on
+	subobjectLevel = 4
+	convertto oggetto editable_poly /* transform the object to work with in editable_poly */
+	ver=polyOp.getFaceCenter oggetto faccia; /** get the face center position**/
+	theRay = Ray [ver[1]+x,ver[2]+y,ver[3]+z] [x, y, z] /* create a ray that starts from the face center, pos =[x,y,z], */
+
+	/* theRay.position = [x,y+eps,z]  it is necessary to add some eps value to the y variable of the ray position in order to avoid strange return values*/
+	theInt = IntersectRay oggetto TheRay ;/* theInt is the position of the intersection between the ray and the object, it contains also the normal parameters of the intersection point*/
+	if theInt == undefined do
+	(	
+		theInt=TheRay; /* intersectRay return undefined if there is not a collision, here i catch this exception*/
+		toReturn = False;
+	)
+
+	/* here i check if there is a collision within the specified distance */
+	collisionDistance = distance TheRay.position (theInt.position);
+	if collisionDistance > distanza do toReturn =False;
+	
+	toReturn
+)
